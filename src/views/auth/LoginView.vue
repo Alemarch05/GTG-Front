@@ -61,7 +61,7 @@ const handleLogin = async () => {
 
       <p class="footer-text">
         ¿No tienes una cuenta?
-        <router-link to="/register">Regístrate aquí</router-link>
+        <router-link to="/auth/register">Regístrate aquí</router-link>
       </p>
     </div>
   </div>

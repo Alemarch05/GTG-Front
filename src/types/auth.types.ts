@@ -1,3 +1,5 @@
+//TIPADO DE LOS DATOS 
+// SE GENERA UNO POR CADA CONJUNTO DE ENDPOINTS
 export interface User {
   id: string;
   name: string;

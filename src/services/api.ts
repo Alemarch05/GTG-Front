@@ -1,3 +1,5 @@
+//Configuracion global del consumo de api base
+//SOLO SE CREA UNA VEZ NO SE MODIFICA
 import axios from 'axios';
 
 export const api = axios.create({

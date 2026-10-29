@@ -1,3 +1,5 @@
+//STORE ES EL QUE TIENE LA LOGICA DEL ENPOINT Y DE LOS DATOS
+//SE GENERA UNO POR CADA CONJUNTO DE ENPOINTS
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from '../services/api';
