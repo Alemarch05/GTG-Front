@@ -16,10 +16,10 @@ const handleLogout = () => {
     <div class="nav-container">
       <router-link to="/" class="nav-brand">GTG Crowdfunding</router-link>
       <div class="nav-links">
-        <router-link to="/" class="nav-item">Campañas</router-link>
+        <router-link to="/main/campaigns" class="nav-item">Campañas</router-link>
         
         <template v-if="authStore.isAuthenticated">
-          <router-link to="/my-contributions" class="nav-item">Mis Aportes</router-link>
+          <router-link to="/main/my-contributions" class="nav-item">Mis Aportes</router-link>
           <span class="user-name">Hola, {{ authStore.user?.name }}</span>
           <button @click="handleLogout" class="btn-logout">Cerrar Sesión</button>
         </template>

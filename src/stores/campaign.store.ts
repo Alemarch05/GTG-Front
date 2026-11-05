@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { api } from '../services/api';
-import type { Campaign, CreateCampaignDTO } from '../types/campaign.types';
+import type { Campaign, CreateCampaignDTO, UpdateCampaignDTO } from '../types/campaign.types';
 
 export const useCampaignStore = defineStore('campaign', () => {
   const campaigns = ref<Campaign[]>([]);
@@ -23,6 +23,19 @@ export const useCampaignStore = defineStore('campaign', () => {
     }
   }
 
+  async function fetchCampaignById(id: string) {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await api.get(`/campaigns/${id}`);
+      currentCampaign.value = response.data;
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Error al cargar la campaña';
+    } finally {
+      loading.value = false;
+    }
+  }
+
   async function createCampaign(campaignData: CreateCampaignDTO) {
     loading.value = true;
     error.value = null;
@@ -36,6 +49,31 @@ export const useCampaignStore = defineStore('campaign', () => {
       loading.value = false;
     }
   }
+  async function updateCampaign(id: string, campaignData: UpdateCampaignDTO) {
+    loading.value = true;
+    error.value = null;
+    try {
+      await api.put(`/campaigns/${id}`, campaignData);
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Error al actualizar la campaña';
+      throw error.value;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function deleteCampaign(id: string) {
+    loading.value = true;
+    error.value = null;
+    try {
+      await api.delete(`/campaigns/${id}`);
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Error al eliminar la campaña';
+      throw error.value;
+    } finally {
+      loading.value = false;
+    }
+  }
 
   return {
     campaigns,
@@ -43,6 +81,9 @@ export const useCampaignStore = defineStore('campaign', () => {
     loading,
     error,
     fetchCampaigns,
-    createCampaign
+    fetchCampaignById,
+    createCampaign,
+    updateCampaign,
+    deleteCampaign
   };
 });

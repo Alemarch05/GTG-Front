@@ -23,30 +23,42 @@ const router = createRouter({
           name: 'register',
           component: RegisterView,
         },
-        {
-          path: '/my-contributions',
-          name: 'my-contributions',
-          component: MyContributionsView,
-        },
       ],
-    },
-
-    {
-      path: '/main',
-      component: MainLayout,
     },
     {
       path: '/login',
       redirect: '/auth/login',
     },
-    // {
-    //   path: '/',
-    //   redirect: '/auth/login',
-    // },
     {
-      path: '/campaigns',
-      name: 'campaigns-list',
-      component: CampaignsListView, 
+      path: '/main',
+      component: MainLayout,
+      children: [
+        {
+          path: 'campaigns', 
+          name: 'campaigns-list',
+          component: CampaignsListView, 
+        },
+        {
+          path: 'campaigns/create', 
+          name: 'campaign-create',
+          component: () => import('../views/Campaigns/CreateCampaignView.vue'),
+        },
+        {
+          path: 'campaigns/:id', 
+          name: 'campaign-detail',
+          component: () => import('../views/Campaigns/CampaignDetailView.vue'),
+        },
+        {
+          path: 'campaigns/:id/edit', 
+          name: 'campaign-edit',
+          component: () => import('../views/Campaigns/EditCampaignView.vue'),
+        },
+        {
+          path: 'my-contributions', 
+          name: 'my-contributions',
+          component: MyContributionsView,
+        }
+      ]
     },
   ],
 })

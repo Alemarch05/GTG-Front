@@ -11,8 +11,17 @@ export interface Campaign {
 }
 
 export interface CreateCampaignDTO {
+  userId: string;
   title: string;
   description: string;
-  goal_amount: number;
-  deadline: string;
+  targetAmount: number;
+  expiresAt: string;
+}
+
+export interface UpdateCampaignDTO {
+  userId: string;
+  title: string;
+  description: string;
+  targetAmount: number;
+  expiresAt: string;
 }
