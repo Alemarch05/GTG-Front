@@ -3,6 +3,7 @@ import LoginView from '../views/auth/LoginView.vue';
 import RegisterView from '../views/auth/RegisterView.vue';
 import MainLayout from '@/layouts/MainLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
+import CampaignsListView from '../views/Campaigns/CampaignsListView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,9 +33,14 @@ const router = createRouter({
       path: '/login',
       redirect: '/auth/login',
     },
+    // {
+    //   path: '/',
+    //   redirect: '/auth/login',
+    // },
     {
-      path: '/',
-      redirect: '/auth/login',
+      path: '/campaigns',
+      name: 'campaigns-list',
+      component: CampaignsListView, 
     },
   ],
 })
