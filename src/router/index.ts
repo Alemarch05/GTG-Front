@@ -3,6 +3,7 @@ import LoginView from '../views/auth/LoginView.vue';
 import RegisterView from '../views/auth/RegisterView.vue';
 import MainLayout from '@/layouts/MainLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
+import MyContributionsView from '../views/contributions/MyContributionsView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,6 +21,11 @@ const router = createRouter({
           path: 'register',
           name: 'register',
           component: RegisterView,
+        },
+        {
+          path: '/my-contributions',
+          name: 'my-contributions',
+          component: MyContributionsView,
         },
       ],
     },
