@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, computed } from 'vue';
 import { useContributionStore } from '../../stores/contribution.store';
 
 const contributionStore = useContributionStore();
@@ -32,6 +32,12 @@ const getStatusBadge = (status: string) => {
       return { text: status, class: '' };
   }
 };
+
+const totalContributed = computed(() => {
+  return contributionStore.userContributions.reduce((total, contribution) => {
+    return total + Number(contribution.amount);
+  }, 0);
+});
 </script>
 
 <template>
@@ -39,6 +45,13 @@ const getStatusBadge = (status: string) => {
     <div class="header">
       <h2>Mis Aportes</h2>
       <p>Seguimiento de fondos y estado de custodia virtual (All-or-Nothing)</p>
+    </div>
+
+    <div v-if="contributionStore.userContributions.length > 0 && !contributionStore.loading" class="summary-card">
+      <div class="summary-content">
+        <h3>Total Aportado en Proyectos</h3>
+        <p class="total-amount">{{ formatCurrency(totalContributed) }}</p>
+      </div>
     </div>
 
     <div v-if="contributionStore.loading" class="loading">
@@ -157,5 +170,28 @@ const getStatusBadge = (status: string) => {
   background: #FFFFFF;
   border-radius: 8px;
   border: 1px solid #BAC8B1;
+}
+
+.summary-card {
+  background-color: #F4F7F4;
+  border-left: 4px solid #7B9669;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.summary-content h3 {
+  color: #6C8480;
+  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+}
+
+.summary-content .total-amount {
+  color: #404E3B;
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin: 0;
 }
 </style>

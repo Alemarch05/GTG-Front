@@ -1,17 +1,22 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '../stores/auth.store'; 
+import { useAuthStore } from '../stores/auth.store';
+import { useContributionStore } from '../stores/contribution.store';
 import type { Campaign } from '../types/campaign.types';
 import ProgressBar from './ProgressBar.vue';
 import StatusBadge from './StatusBadge.vue';
+import ContributionModal from './ContributionModal.vue'; 
 
 const props = defineProps<{
   campaign: Campaign;
 }>();
 
 const authStore = useAuthStore();
+const contributionStore = useContributionStore();
 const router = useRouter();
+
+const isModalOpen = ref(false);
 
 const isOwner = computed(() => {
   return authStore.user?.id === props.campaign.user_id;
@@ -29,12 +34,26 @@ const daysRemaining = computed(() => {
   return diffDays > 0 ? diffDays : 0;
 });
 
+const hasContributed = computed(() => {
+  return contributionStore.userContributions.some(
+    (contribution) => contribution.campaign_id === props.campaign.id
+  );
+});
+
 const handleBotonGenerico = () => {
   if (isOwner.value) {
     router.push(`/main/campaigns/${props.campaign.id}/edit`);
   } else {
-    router.push(`/main/campaigns/${props.campaign.id}/contribute`);
+    if (isExpired.value) {
+      alert('Esta campaña ya ha finalizado y no acepta más aportes.');
+      return;
+    }
+    isModalOpen.value = true;
   }
+};
+
+const onContributionSuccess = () => {
+  alert('¡Aporte realizado con éxito!');
 };
 </script>
 
@@ -61,114 +80,36 @@ const handleBotonGenerico = () => {
         <router-link :to="`/main/campaigns/${campaign.id}`" class="btn-outline">
           Ver Detalle
         </router-link>
-      
+        
         <button 
           v-if="authStore.isAuthenticated" 
           @click="handleBotonGenerico" 
           class="boton_generico"
-          :class="isOwner ? 'btn-edit' : 'btn-contribute'"
+          :class="isOwner ? 'btn-edit' : (isExpired ? 'btn-disabled' : 'btn-contribute')"
+          :disabled="!isOwner && isExpired"
         >
-          {{ isOwner ? 'Editar' : 'Aportar' }}
+          {{ isOwner ? 'Editar' : (isExpired ? 'Cerrada' : (hasContributed ? 'Aportar más' : 'Aportar')) }}
         </button>
       </div>
     </div>
+
+    <!-- El Modal conectado correctamente -->
+    <ContributionModal 
+      :is-open="isModalOpen"
+      :campaign-id="campaign.id"
+      :campaign-title="campaign.title"
+      @close="isModalOpen = false"
+      @success="onContributionSuccess"
+    />
   </div>
 </template>
 
 <style scoped>
-
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.boton_generico {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-}
-
-.btn-edit {
-  background-color: #6C8480;
-  color: white;
-}
+.action-buttons { display: flex; gap: 0.5rem; }
+.boton_generico { padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; border: none; }
+.btn-edit { background-color: #6C8480; color: white; }
 .btn-edit:hover { background-color: #556B68; }
-
-.btn-contribute {
-  background-color: #7B9669;
-  color: white;
-}
+.btn-contribute { background-color: #7B9669; color: white; }
 .btn-contribute:hover { background-color: #617A51; }
-
-.campaign-card {
-  background-color: #FFFFFF;
-  border: 1px solid #E6E6E6; /* Gris claro */
-  border-radius: 8px;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 2px 8px rgba(108, 132, 128, 0.1); /* Sombra suave con Verde grisáceo */
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.campaign-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(64, 78, 59, 0.15);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.5rem;
-}
-
-.title {
-  color: #404E3B; /* Verde oscuro */
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin: 0;
-}
-
-.description {
-  color: #6C8480;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  flex-grow: 1;
-}
-
-.card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #E6E6E6;
-}
-
-.days-left {
-  font-size: 0.85rem;
-  color: #6C8480;
-  font-weight: 500;
-}
-
-.btn-outline {
-  padding: 0.5rem 1rem;
-  color: #7B9669; /* Verde olivo */
-  border: 1px solid #7B9669;
-  border-radius: 6px;
-  text-decoration: none;
-  font-size: 0.85rem;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.btn-outline:hover {
-  background-color: #7B9669;
-  color: #FFFFFF;
-}
+.btn-disabled { background-color: #E6E6E6; color: #A0A0A0; cursor: not-allowed; }
 </style>
