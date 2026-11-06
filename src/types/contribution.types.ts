@@ -12,6 +12,7 @@ export interface Contribution {
 
 export interface CreateContributionDTO {
   campaign_id: string;
+  user_id: string;
   amount: number;
 }
 
