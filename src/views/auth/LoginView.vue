@@ -14,7 +14,7 @@ const handleLogin = async () => {
   errorMessage.value = '';
   try {
     await authStore.login({ email: email.value, password: password.value });
-    router.push('/');
+    router.push('/main');
   } catch (err: any) {
     errorMessage.value = err || 'Credenciales inválidas';
   }
