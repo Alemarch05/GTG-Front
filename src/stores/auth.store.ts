@@ -19,11 +19,12 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await api.post<AuthResponse>('/auth/login', credentials);
       const authData = response.data.data;
+      alert('Login successful! Access Token: ' + authData.accessToken); // Muestra el token en un alert
 
-      token.value = authData.token;
+      token.value = authData.accessToken;
       user.value = authData.user;
 
-      localStorage.setItem('token', authData.token);
+      localStorage.setItem('token', authData.accessToken);
       localStorage.setItem('user', JSON.stringify(authData.user));
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Error al iniciar sesión';

@@ -1,4 +1,4 @@
-export type ContributionStatus = 'HELD_IN_ESCROW' | 'RELEASED' | 'REFUNDED';
+export type ContributionStatus = 'HELD' | 'RELEASED' | 'REFUNDED';
 
 export interface Contribution {
   id: string;

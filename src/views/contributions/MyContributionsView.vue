@@ -23,7 +23,7 @@ const formatDate = (dateStr: string) => {
 
 const getStatusBadge = (status: string) => {
   switch (status) {
-    case 'HELD_IN_ESCROW':
+    case 'HELD':
       return { text: 'En Custodia Virtual', class: 'badge-escrow' };
     case 'RELEASED':
       return { text: 'Entregado al Creador', class: 'badge-released' };
@@ -40,22 +40,46 @@ const grandTotal = computed(() => {
 });
 
 // 2. Agrupamos por Campaña (suma los aportes si donaste varias veces al mismo proyecto)
+type ContributionGroup = {
+  campaign_id: string;
+  campaign_title: string;
+  last_date: string;
+  held_amount: number;
+  released_amount: number;
+  refunded_amount: number;
+};
+
 const groupedContributions = computed(() => {
-  const groups = new Map();
+  const groups = new Map<string, ContributionGroup>();
 
   contributionStore.userContributions.forEach((c) => {
-    if (!groups.has(c.campaign_id)) {
-      groups.set(c.campaign_id, {
+    let group = groups.get(c.campaign_id);
+
+    if (!group) {
+      group = {
         campaign_id: c.campaign_id,
-        campaign_title: c.campaign_title || c.campaign_id, 
-        total_amount: 0,
-        status: c.status, 
-        last_date: c.created_at
-      });
+        campaign_title: c.campaign_title || c.campaign_id,
+        last_date: c.created_at,
+        held_amount: 0,
+        released_amount: 0,
+        refunded_amount: 0,
+      };
+      groups.set(c.campaign_id, group);
     }
-    
-    const group = groups.get(c.campaign_id);
-    group.total_amount += Number(c.amount) || 0;
+
+    const amount = Number(c.amount) || 0;
+
+    switch (c.status) {
+      case 'HELD':
+        group.held_amount += amount;
+        break;
+      case 'RELEASED':
+        group.released_amount += amount;
+        break;
+      case 'REFUNDED':
+        group.refunded_amount += amount;
+        break;
+    }
   });
 
   return Array.from(groups.values());
@@ -86,26 +110,24 @@ const groupedContributions = computed(() => {
 
     <div v-else class="table-card">
       <table class="table">
-        <thead>
-          <tr>
-            <th>Último Aporte</th>
-            <th>Proyecto</th>
-            <th>Total Aportado al Proyecto</th>
-            <th>Estado de Custodia</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in groupedContributions" :key="item.campaign_id">
-            <td>{{ formatDate(item.last_date) }}</td>
-            <td>{{ item.campaign_title }}</td>
-            <td class="amount">{{ formatCurrency(item.total_amount) }}</td>
-            <td>
-              <span :class="['badge', getStatusBadge(item.status).class]">
-                {{ getStatusBadge(item.status).text }}
-              </span>
-            </td>
-          </tr>
-        </tbody>
+       <thead>
+        <tr>
+          <th>Último Aporte</th>
+          <th>Proyecto</th>
+          <th>En Custodia</th>
+          <th>Liberado</th>
+          <th>Reembolsado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="item in groupedContributions" :key="item.campaign_id">
+          <td>{{ formatDate(item.last_date) }}</td>
+          <td>{{ item.campaign_title }}</td>
+          <td class="amount">{{ formatCurrency(item.held_amount) }}</td>
+          <td class="amount">{{ formatCurrency(item.released_amount) }}</td>
+          <td class="amount">{{ formatCurrency(item.refunded_amount) }}</td>
+        </tr>
+      </tbody>
       </table>
     </div>
   </div>
