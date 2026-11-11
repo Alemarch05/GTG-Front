@@ -1,19 +1,11 @@
 <script setup lang="ts">
-import { onMounted, computed, ref } from 'vue';
+import { onMounted, computed } from 'vue';
 import { useContributionStore } from '../../stores/contribution.store';
-import { useCampaignStore } from '../../stores/campaign.store';
 
 const contributionStore = useContributionStore();
-const campaignStore = useCampaignStore();
-
-type FilterStatus = 'ALL' | 'PENDING' | 'RELEASED' | 'REFUNDED';
-const activeFilter = ref<FilterStatus>('ALL');
 
 onMounted(() => {
   contributionStore.fetchMyContributions();
-  if (campaignStore.campaigns.length === 0) {
-    campaignStore.fetchCampaigns();
-  }
 });
 
 const formatCurrency = (val: number) => {
@@ -35,93 +27,115 @@ const formatDate = (dateStr: string) => {
   });
 };
 
-const getCampaignTitle = (item: any) => {
-  if (item.campaign_title && item.campaign_title.trim() !== '') {
-    return item.campaign_title;
-  }
-  const found = campaignStore.campaigns.find((c) => c.id === item.campaign_id);
-  if (found && found.title) {
-    return found.title;
-  }
-  return item.campaign_id ? `Campaña #${item.campaign_id}` : 'Proyecto';
-};
-
 const getStatusBadge = (status: string) => {
   switch (status) {
     case 'HELD':
-    case 'HELD_IN_ESCROW':
-    case 'ACTIVE':
       return { text: 'En Custodia Virtual', class: 'badge-escrow' };
     case 'RELEASED':
-    case 'SUCCESSFUL':
       return { text: 'Entregado al Creador', class: 'badge-released' };
     case 'REFUNDED':
-    case 'FAILED':
       return { text: 'Reembolsado', class: 'badge-refunded' };
     default:
-      return { text: status || 'En Custodia', class: 'badge-escrow' };
+      return { text: status || 'Desconocido', class: '' };
   }
 };
 
-// --- MÉTTRICAS DIFERENCIADAS (FRONTEND) ---
+// --- TOTALES Y MÉTRICAS GLOBALES DIFERENCIADAS ---
 
-// 1. Total Histórico Aportado (Suma bruta de todos los registros de aportes)
+// 1. Total Histórico Aportado (suma bruta de todos los aportes)
 const totalContributed = computed(() => {
   if (!Array.isArray(contributionStore.userContributions)) return 0;
   return contributionStore.userContributions.reduce(
-    (acc, item) => acc + (Number(item.amount) || 0),
+    (total, c) => total + (Number(c.amount) || 0),
     0
   );
 });
 
-// 2. Total Pendiente / En Custodia Virtual (Campañas activas en evaluación All-or-Nothing)
+// 2. Gran Total Aportado Activo (excluyendo reembolsos)
+const grandTotal = computed(() => {
+  if (!Array.isArray(contributionStore.userContributions)) return 0;
+  return contributionStore.userContributions
+    .filter((c) => c.status !== 'REFUNDED')
+    .reduce((total, c) => total + (Number(c.amount) || 0), 0);
+});
+
+// 3. Total Pendiente en Custodia Virtual
 const totalPending = computed(() => {
   if (!Array.isArray(contributionStore.userContributions)) return 0;
   return contributionStore.userContributions
-    .filter((item) => ['HELD', 'HELD_IN_ESCROW', 'ACTIVE'].includes(item.status || ''))
-    .reduce((acc, item) => acc + (Number(item.amount) || 0), 0);
+    .filter((c) => c.status === 'HELD')
+    .reduce((total, c) => total + (Number(c.amount) || 0), 0);
 });
 
-// 3. Total Liberado al Creador (Campañas que alcanzaron la meta exitosamente)
+// 4. Total Liberado al Creador (Campañas con meta lograda)
 const totalReleased = computed(() => {
   if (!Array.isArray(contributionStore.userContributions)) return 0;
   return contributionStore.userContributions
-    .filter((item) => ['RELEASED', 'SUCCESSFUL'].includes(item.status || ''))
-    .reduce((acc, item) => acc + (Number(item.amount) || 0), 0);
+    .filter((c) => c.status === 'RELEASED')
+    .reduce((total, c) => total + (Number(c.amount) || 0), 0);
 });
 
-// 4. Total Reembolsado (Fondos devueltos al usuario porque la meta no se alcanzó)
+// 5. Total Reembolsado (Campañas que no alcanzaron la meta)
 const totalRefunded = computed(() => {
   if (!Array.isArray(contributionStore.userContributions)) return 0;
   return contributionStore.userContributions
-    .filter((item) => ['REFUNDED', 'FAILED'].includes(item.status || ''))
-    .reduce((acc, item) => acc + (Number(item.amount) || 0), 0);
+    .filter((c) => c.status === 'REFUNDED')
+    .reduce((total, c) => total + (Number(c.amount) || 0), 0);
 });
 
-// Contador de aportes por estado para los badges de los filtros
-const counts = computed(() => {
-  const list = contributionStore.userContributions;
-  return {
-    all: list.length,
-    pending: list.filter((i) => ['HELD', 'HELD_IN_ESCROW', 'ACTIVE'].includes(i.status || '')).length,
-    released: list.filter((i) => ['RELEASED', 'SUCCESSFUL'].includes(i.status || '')).length,
-    refunded: list.filter((i) => ['REFUNDED', 'FAILED'].includes(i.status || '')).length,
-  };
-});
+// --- AGRUPACIÓN POR CAMPAÑA (Estructura de Dev) ---
+type ContributionGroup = {
+  campaign_id: string;
+  campaign_title: string;
+  last_date: string;
+  held_amount: number;
+  released_amount: number;
+  refunded_amount: number;
+  total_amount: number;
+};
 
-// Lista filtrada según la pestaña seleccionada
-const filteredContributions = computed(() => {
-  const list = contributionStore.userContributions;
-  if (activeFilter.value === 'PENDING') {
-    return list.filter((item) => ['HELD', 'HELD_IN_ESCROW', 'ACTIVE'].includes(item.status || ''));
-  }
-  if (activeFilter.value === 'RELEASED') {
-    return list.filter((item) => ['RELEASED', 'SUCCESSFUL'].includes(item.status || ''));
-  }
-  if (activeFilter.value === 'REFUNDED') {
-    return list.filter((item) => ['REFUNDED', 'FAILED'].includes(item.status || ''));
-  }
-  return list;
+const groupedContributions = computed(() => {
+  const groups = new Map<string, ContributionGroup>();
+
+  if (!Array.isArray(contributionStore.userContributions)) return [];
+
+  contributionStore.userContributions.forEach((c) => {
+    let group = groups.get(c.campaign_id);
+
+    if (!group) {
+      group = {
+        campaign_id: c.campaign_id,
+        campaign_title: c.campaign_title || c.campaign_id,
+        last_date: c.created_at,
+        held_amount: 0,
+        released_amount: 0,
+        refunded_amount: 0,
+        total_amount: 0,
+      };
+      groups.set(c.campaign_id, group);
+    }
+
+    const amount = Number(c.amount) || 0;
+    group.total_amount += amount;
+
+    if (new Date(c.created_at) > new Date(group.last_date)) {
+      group.last_date = c.created_at;
+    }
+
+    switch (c.status) {
+      case 'HELD':
+        group.held_amount += amount;
+        break;
+      case 'RELEASED':
+        group.released_amount += amount;
+        break;
+      case 'REFUNDED':
+        group.refunded_amount += amount;
+        break;
+    }
+  });
+
+  return Array.from(groups.values());
 });
 </script>
 
@@ -129,141 +143,87 @@ const filteredContributions = computed(() => {
   <div class="contributions-container">
     <div class="header">
       <h2>Mis Aportes</h2>
-      <p>Seguimiento detallado de fondos y estado de custodia virtual (All-or-Nothing)</p>
+      <p>Seguimiento de fondos y estado de custodia virtual (All-or-Nothing)</p>
     </div>
 
-    <!-- Panel de Métricas / Totales Claros y Diferenciados -->
+    <!-- Panel de Totales Diferenciados: Histórico, Pendiente, Liberado y Reembolsado -->
     <div
-      v-if="contributionStore.userContributions.length > 0 && !contributionStore.loading"
+      v-if="groupedContributions.length > 0 && !contributionStore.loading"
       class="summary-grid"
     >
-      <!-- Total Histórico -->
       <div class="summary-card card-total">
         <div class="card-icon">💰</div>
         <div class="card-body">
           <span class="card-title">Total Aportado</span>
           <p class="card-amount">{{ formatCurrency(totalContributed) }}</p>
-          <span class="card-subtext">Histórico acumulado</span>
+          <span class="card-subtext">Histórico general</span>
         </div>
       </div>
 
-      <!-- Pendiente en Custodia -->
       <div class="summary-card card-pending">
         <div class="card-icon">⏳</div>
         <div class="card-body">
           <span class="card-title">En Custodia Virtual</span>
           <p class="card-amount">{{ formatCurrency(totalPending) }}</p>
-          <span class="card-subtext">Campañas activas en curso</span>
+          <span class="card-subtext">Campañas activas</span>
         </div>
       </div>
 
-      <!-- Liberado / Exitoso -->
       <div class="summary-card card-released">
         <div class="card-icon">✅</div>
         <div class="card-body">
-          <span class="card-title">Entregado al Creador</span>
+          <span class="card-title">Liberado al Creador</span>
           <p class="card-amount">{{ formatCurrency(totalReleased) }}</p>
-          <span class="card-subtext">Proyectos con meta lograda</span>
+          <span class="card-subtext">Metas alcanzadas</span>
         </div>
       </div>
 
-      <!-- Reembolsado -->
       <div class="summary-card card-refunded">
         <div class="card-icon">↩️</div>
         <div class="card-body">
           <span class="card-title">Reembolsado</span>
           <p class="card-amount">{{ formatCurrency(totalRefunded) }}</p>
-          <span class="card-subtext">Devuelto por meta no lograda</span>
+          <span class="card-subtext">Fondos devueltos</span>
         </div>
       </div>
     </div>
 
-    <!-- Estado de carga -->
     <div v-if="contributionStore.loading" class="loading">
       Cargando historial de aportes...
     </div>
 
-    <!-- Estado de error -->
-    <div v-else-if="contributionStore.error" class="error-card">
-      <p>{{ contributionStore.error }}</p>
-      <button class="btn-retry" @click="contributionStore.fetchMyContributions">Reintentar</button>
-    </div>
-
-    <!-- Estado sin aportes -->
-    <div v-else-if="contributionStore.userContributions.length === 0" class="empty-state">
+    <div v-else-if="groupedContributions.length === 0" class="empty-state">
       <p>Aún no has realizado ningún aporte a proyectos.</p>
-      <router-link to="/main/campaigns" class="btn-explore">Explorar Campañas</router-link>
     </div>
 
-    <!-- Tabla de Aportes con Filtro de Pestañas -->
     <div v-else class="table-card">
-      <!-- Barra de Filtros -->
-      <div class="table-filters">
-        <button
-          :class="['filter-btn', { active: activeFilter === 'ALL' }]"
-          @click="activeFilter = 'ALL'"
-        >
-          Todos ({{ counts.all }})
-        </button>
-        <button
-          :class="['filter-btn', { active: activeFilter === 'PENDING' }]"
-          @click="activeFilter = 'PENDING'"
-        >
-          En Custodia ({{ counts.pending }})
-        </button>
-        <button
-          :class="['filter-btn', { active: activeFilter === 'RELEASED' }]"
-          @click="activeFilter = 'RELEASED'"
-        >
-          Entregados ({{ counts.released }})
-        </button>
-        <button
-          :class="['filter-btn', { active: activeFilter === 'REFUNDED' }]"
-          @click="activeFilter = 'REFUNDED'"
-        >
-          Reembolsados ({{ counts.refunded }})
-        </button>
-      </div>
-
-      <!-- Mensaje si el filtro no tiene elementos -->
-      <div v-if="filteredContributions.length === 0" class="empty-filter">
-        No hay aportes en este estado.
-      </div>
-
-      <!-- Tabla -->
-      <table v-else class="table">
+      <table class="table">
         <thead>
           <tr>
-            <th>Fecha</th>
-            <th>Proyecto / Campaña</th>
-            <th>Monto</th>
-            <th>Estado de Custodia</th>
+            <th>Último Aporte</th>
+            <th>Proyecto</th>
+            <th>En Custodia</th>
+            <th>Liberado</th>
+            <th>Reembolsado</th>
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="item in filteredContributions"
-            :key="item.id || item.contribution_id"
-          >
-            <td>{{ formatDate(item.created_at) }}</td>
-            <td class="campaign-cell">
-              <router-link
-                v-if="item.campaign_id"
-                :to="`/main/campaigns/${item.campaign_id}`"
-                class="campaign-link"
-              >
-                {{ getCampaignTitle(item) }}
-              </router-link>
-              <span v-else>{{ getCampaignTitle(item) }}</span>
-            </td>
-            <td class="amount">{{ formatCurrency(item.amount) }}</td>
-            <td>
-              <span :class="['badge', getStatusBadge(item.status || item.campaign_status || '').class]">
-                {{ getStatusBadge(item.status || item.campaign_status || '').text }}
-              </span>
-            </td>
+          <tr v-for="item in groupedContributions" :key="item.campaign_id">
+            <td>{{ formatDate(item.last_date) }}</td>
+            <td class="project-title">{{ item.campaign_title }}</td>
+            <td class="amount text-held">{{ formatCurrency(item.held_amount) }}</td>
+            <td class="amount text-released">{{ formatCurrency(item.released_amount) }}</td>
+            <td class="amount text-refunded">{{ formatCurrency(item.refunded_amount) }}</td>
           </tr>
         </tbody>
+        <tfoot>
+          <tr class="tfoot-row">
+            <td colspan="2"><strong>Totales:</strong></td>
+            <td class="amount text-held">{{ formatCurrency(totalPending) }}</td>
+            <td class="amount text-released">{{ formatCurrency(totalReleased) }}</td>
+            <td class="amount text-refunded">{{ formatCurrency(totalRefunded) }}</td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   </div>
@@ -271,7 +231,7 @@ const filteredContributions = computed(() => {
 
 <style scoped>
 .contributions-container {
-  max-width: 1000px;
+  max-width: 950px;
   margin: 2rem auto;
   padding: 0 1rem;
 }
@@ -290,7 +250,7 @@ const filteredContributions = computed(() => {
 /* Grilla de Métricas / Totales */
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
 }
@@ -353,7 +313,7 @@ const filteredContributions = computed(() => {
 
 .card-amount {
   color: #404E3B;
-  font-size: 1.45rem;
+  font-size: 1.4rem;
   font-weight: 700;
   margin: 0.2rem 0;
 }
@@ -363,50 +323,10 @@ const filteredContributions = computed(() => {
   color: #8C9E9A;
 }
 
-/* Filtros de la Tabla */
-.table-filters {
-  display: flex;
-  gap: 0.5rem;
-  padding: 1rem;
-  background-color: #F8FAF8;
-  border-bottom: 1px solid #E6E6E6;
-  flex-wrap: wrap;
-}
-
-.filter-btn {
-  background: transparent;
-  border: 1px solid #BAC8B1;
-  color: #404E3B;
-  padding: 0.4rem 0.85rem;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.filter-btn:hover {
-  background-color: #BAC8B1;
-  color: #404E3B;
-}
-
-.filter-btn.active {
-  background-color: #7B9669;
-  color: #FFFFFF;
-  border-color: #7B9669;
-}
-
-.empty-filter {
-  padding: 2.5rem;
-  text-align: center;
-  color: #6C8480;
-  font-style: italic;
-}
-
 /* Tabla de datos */
 .table-card {
   background-color: #FFFFFF;
-  border: 1px solid #BAC8B1;
+  border: 1px solid #6C8480;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(64, 78, 59, 0.05);
@@ -433,24 +353,33 @@ const filteredContributions = computed(() => {
   font-size: 0.95rem;
 }
 
-.table tr:last-child td {
+.tfoot-row td {
+  background-color: #F8FAF8;
+  border-top: 2px solid #BAC8B1;
   border-bottom: none;
+  font-size: 0.95rem;
 }
 
-.campaign-cell .campaign-link {
-  color: #404E3B;
+.project-title {
   font-weight: 600;
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.campaign-cell .campaign-link:hover {
-  color: #7B9669;
-  text-decoration: underline;
+  color: #404E3B;
 }
 
 .amount {
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.text-held {
+  color: #856404;
+}
+
+.text-released {
+  color: #404E3B;
+}
+
+.text-refunded {
+  color: #721c24;
 }
 
 .badge {
@@ -477,46 +406,12 @@ const filteredContributions = computed(() => {
 }
 
 .loading,
-.empty-state,
-.error-card {
+.empty-state {
   text-align: center;
   padding: 3rem;
   color: #6C8480;
   background: #FFFFFF;
   border-radius: 8px;
   border: 1px solid #BAC8B1;
-}
-
-.empty-state p {
-  margin-bottom: 1rem;
-}
-
-.btn-explore {
-  display: inline-block;
-  padding: 0.5rem 1.25rem;
-  background-color: #7B9669;
-  color: #FFFFFF;
-  border-radius: 6px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: background-color 0.2s;
-}
-
-.btn-explore:hover {
-  background-color: #617A51;
-}
-
-.btn-retry {
-  padding: 0.5rem 1rem;
-  background-color: #6C8480;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-top: 0.5rem;
-}
-
-.btn-retry:hover {
-  background-color: #556B68;
 }
 </style>

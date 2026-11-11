@@ -10,12 +10,6 @@ import { useAuthStore } from '../stores/auth.store';
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-
-    {
-      path: '/',
-      redirect: '/auth/login',
-    },
-
     {
       path: '/auth',
       component: AuthLayout,
@@ -38,10 +32,14 @@ const router = createRouter({
       redirect: '/auth/login',
     },
     {
+      path: '/',
+      redirect: '/main',
+    },
+    {
       path: '/main',
       component: MainLayout,
       redirect: '/main/campaigns',
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true }, // Protege todo lo que esté dentro de /main
       children: [
         {
           path: 'campaigns', 
@@ -69,10 +67,6 @@ const router = createRouter({
           component: MyContributionsView,
         }
       ]
-    },
-    {
-      path: '/',
-      redirect: '/main/campaigns',
     }
   ],
 });
@@ -80,19 +74,14 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore();
 
-  // Verifica si alguna de las rutas hijas o padres requiere autenticación
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
-  // Verifica si la ruta es exclusiva para usuarios no autenticados (Login/Register)
   const requiresGuest = to.matched.some(record => record.meta.requiresGuest);
 
   if (requiresAuth && !authStore.isAuthenticated) {
-    // Si intenta ingresar a una ruta protegida sin token/sesión -> Redirige al Login
     next({ name: 'login' });
   } else if (requiresGuest && authStore.isAuthenticated) {
-    // Si el usuario ya está logueado e intenta ir a /auth/login -> Redirige a /main
     next({ name: 'campaigns-list' });
   } else {
-    // Permite la navegación normalmente
     next();
   }
 });
