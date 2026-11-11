@@ -35,8 +35,13 @@ const getStatusBadge = (status: string) => {
 };
 
 // 1. Calculamos el Gran Total Global
+//Se agregó el filtro .filter() para excluir 
+// los aportes con estado 'REFUNDED' del cálculo global, 
+// evitando así que se inflen y confundan los totales
 const grandTotal = computed(() => {
-  return contributionStore.userContributions.reduce((total, c) => total + (Number(c.amount) || 0), 0);
+  return contributionStore.userContributions
+    .filter(c => c.status !== 'REFUNDED')
+    .reduce((total, c) => total + (Number(c.amount) || 0), 0);
 });
 
 // 2. Agrupamos por Campaña (suma los aportes si donaste varias veces al mismo proyecto)
@@ -95,7 +100,9 @@ const groupedContributions = computed(() => {
 
     <div v-if="groupedContributions.length > 0 && !contributionStore.loading" class="summary-card">
       <div class="summary-content">
-        <h3>Gran Total Aportado</h3>
+
+    
+        <h3>Gran Total Aportado (Activo)</h3>
         <p class="total-amount">{{ formatCurrency(grandTotal) }}</p>
       </div>
     </div>
