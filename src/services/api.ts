@@ -1,6 +1,5 @@
-//Configuracion global del consumo de api base
-//SOLO SE CREA UNA VEZ NO SE MODIFICA
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 export const api = axios.create({
   baseURL: 'http://localhost:3000/api',
@@ -22,7 +21,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    
+    // 1. Manejo Silencioso de Token Expirado (Tu lógica)
     if (error.response && (error.response.status === 401 || error.response.status === 403) && !originalRequest._retry) {
       originalRequest._retry = true; 
       const refreshToken = localStorage.getItem('refreshToken');
@@ -48,9 +47,24 @@ api.interceptors.response.use(
       } else {
         localStorage.clear();
         window.location.href = '/auth/login';
+        return Promise.reject(error);
       }
     }
     
+    // 2. Alerta Visual para cualquier otro error (Lógica de Dev)
+    const message =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      'Ocurrió un error inesperado al procesar la solicitud.';
+
+    Swal.fire({
+      icon: 'error',
+      title: '¡Algo salió mal!',
+      text: Array.isArray(message) ? message.join(', ') : message,
+      confirmButtonColor: '#404E3B',
+      confirmButtonText: 'Entendido',
+    });
+
     return Promise.reject(error);
   }
 );

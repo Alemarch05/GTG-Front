@@ -5,7 +5,6 @@ import type {
   Contribution,
   CreateContributionDTO,
   ContributionResponse,
-  UserContributionsResponse,
 } from '../types/contribution.types';
 
 export const useContributionStore = defineStore('contribution', () => {
@@ -35,8 +34,11 @@ export const useContributionStore = defineStore('contribution', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await api.get<UserContributionsResponse>('/contributions/user');
-      userContributions.value = response.data.data;
+      // Usamos 'any' para extraer la nueva estructura { total_contributed, contributions }
+      const response = await api.get<any>('/contributions/me');
+      
+      // Extraemos específicamente el arreglo de contribuciones
+      userContributions.value = response.data.data.contributions || [];
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Error al obtener las contribuciones';
     } finally {

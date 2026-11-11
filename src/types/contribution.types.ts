@@ -1,4 +1,4 @@
-export type ContributionStatus = 'HELD_IN_ESCROW' | 'RELEASED' | 'REFUNDED';
+export type ContributionStatus = 'HELD' | 'RELEASED' | 'REFUNDED';
 
 export interface Contribution {
   id: string;
@@ -12,6 +12,7 @@ export interface Contribution {
 
 export interface CreateContributionDTO {
   campaign_id: string;
+  user_id: string;
   amount: number;
 }
 

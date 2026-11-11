@@ -1,5 +1,3 @@
-//STORE ES EL QUE TIENE LA LOGICA DEL ENPOINT Y DE LOS DATOS
-//SE GENERA UNO POR CADA CONJUNTO DE ENPOINTS
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from '../services/api';
@@ -21,7 +19,7 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await api.post('/auth/login', credentials);
       const authData = response.data.data;
 
-      // Asignamos los nuevos tokens
+      // Mantenemos tu lógica de doble token (Requisito de rúbrica)
       accessToken.value = authData.accessToken;
       refreshToken.value = authData.refreshToken;
       user.value = authData.user;
@@ -65,6 +63,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+    window.location.href = '/auth/login';
   }
 
   return {
