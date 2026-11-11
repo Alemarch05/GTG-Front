@@ -5,13 +5,13 @@ import { useCampaignStore } from '../../stores/campaign.store';
 import ProgressBar from '../../components/ProgressBar.vue';
 import StatusBadge from '../../components/StatusBadge.vue';
 import LoadingSpinner from '../../components/LoadingSpinner.vue';
+import BaseAlert from '../../components/BaseAlert.vue';
 
 const route = useRoute();
 const router = useRouter();
 const campaignStore = useCampaignStore();
 
 onMounted(async () => {
-  // El id viene de la URL: /main/campaigns/1234
   await campaignStore.fetchCampaignById(route.params.id as string);
 });
 </script>
@@ -22,6 +22,10 @@ onMounted(async () => {
     
     <div v-if="campaignStore.loading" class="center-content">
       <LoadingSpinner />
+    </div>
+
+    <div v-else-if="campaignStore.error" class="center-content">
+      <BaseAlert type="error" :message="campaignStore.error" />
     </div>
 
     <div v-else-if="campaignStore.currentCampaign" class="campaign-detail">

@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCampaignStore } from '../../stores/campaign.store';
 import { useAuthStore } from '../../stores/auth.store';
+import BaseAlert from '../../components/BaseAlert.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -48,14 +49,11 @@ const submitUpdate = async () => {
   const currentUserId = authStore.user?.id;
   
   if (!currentUserId) {
-    alert('Sesión no encontrada');
     return;
   }
 
-  // Preparamos la fecha ISO estándar
   const formattedDate = new Date(form.value.expiresAt).toISOString();
 
-  // Payload robusto: incluye tanto camelCase como snake_case para asegurar compatibilidad con el DTO del PUT
   const payload: any = {
     userId: currentUserId,
     user_id: currentUserId,
@@ -67,21 +65,14 @@ const submitUpdate = async () => {
     expires_at: formattedDate
   };
 
-  console.log('Payload enviado al PUT:', payload);
-
   try {
     await campaignStore.updateCampaign(campaignId, payload);
-    
-    // Volvemos a consultar la lista y el detalle para refrescar Pinia con la BD
     await campaignStore.fetchCampaigns();
     await campaignStore.fetchCampaignById(campaignId);
     
-    // alert('¡Campaña actualizada con éxito!');
     router.push('/main/campaigns');
   } catch (error) {
-    // alert('Error al guardar: ' + campaignStore.error);
-    console.error('Error detallado:', error);
-  }
+    }
 };
 
 const handleDelete = async () => {
@@ -92,7 +83,6 @@ const handleDelete = async () => {
     await campaignStore.fetchCampaigns();
     router.push('/main/campaigns');
   } catch (error) {
-    console.error('Error eliminando:', error);
   }
 };
 </script>
@@ -104,6 +94,9 @@ const handleDelete = async () => {
     <div v-if="campaignStore.loading" class="loading">Cargando datos...</div>
     
     <form v-else @submit.prevent="submitUpdate" class="campaign-form">
+      <div v-if="campaignStore.error" style="margin-bottom: 1.5rem;">
+        <BaseAlert type="error" :message="campaignStore.error" />
+      </div>
       <div class="form-group">
         <label>Título</label>
         <input v-model="form.title" type="text" required />

@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useCampaignStore } from '../../stores/campaign.store';
 import { useAuthStore } from '../../stores/auth.store';
+import BaseAlert from '../../components/BaseAlert.vue';
 
 const campaignStore = useCampaignStore();
 const authStore = useAuthStore();
@@ -19,7 +20,6 @@ const submitForm = async () => {
   const currentUserId = authStore.user?.id;
 
   if (!currentUserId) {
-    console.error('No hay usuario logueado');
     return; 
   }
 
@@ -34,7 +34,6 @@ const submitForm = async () => {
     
     router.push('/main/campaigns');
   } catch (error) {
-    console.error('Error al crear campaña', error);
   }
 };
 </script>
@@ -42,6 +41,10 @@ const submitForm = async () => {
 <template>
   <div class="create-container">
     <h2>Crear Nueva Campaña</h2>
+
+    <div v-if="campaignStore.error" style="margin-bottom: 1.5rem;">
+      <BaseAlert type="error" :message="campaignStore.error" />
+    </div>
     
     <form @submit.prevent="submitForm" class="campaign-form">
       <div class="form-group">
