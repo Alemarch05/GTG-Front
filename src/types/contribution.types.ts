@@ -1,13 +1,15 @@
-export type ContributionStatus = 'HELD_IN_ESCROW' | 'RELEASED' | 'REFUNDED';
+export type ContributionStatus = 'HELD_IN_ESCROW' | 'HELD' | 'RELEASED' | 'REFUNDED';
 
 export interface Contribution {
-  id: string;
+  id?: string;
+  contribution_id?: string;
   campaign_id: string;
-  user_id: string;
+  user_id?: string;
   amount: number;
-  status: ContributionStatus;
+  status: ContributionStatus | string;
   created_at: string;
-  campaign_title?: string; // Opcional para mostrar en la vista de historial
+  campaign_title?: string; // Título de la campaña asociada al aporte
+  campaign_status?: string;
 }
 
 export interface CreateContributionDTO {
@@ -17,11 +19,18 @@ export interface CreateContributionDTO {
 }
 
 export interface ContributionResponse {
-  success: boolean;
+  success?: boolean;
+  message?: string;
   data: Contribution;
 }
 
+export interface UserContributionsData {
+  total_contributed?: number;
+  contributions: Contribution[];
+}
+
 export interface UserContributionsResponse {
-  success: boolean;
-  data: Contribution[];
+  success?: boolean;
+  message?: string;
+  data: Contribution[] | UserContributionsData;
 }

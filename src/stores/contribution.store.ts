@@ -34,13 +34,26 @@ export const useContributionStore = defineStore('contribution', () => {
     loading.value = true;
     error.value = null;
     try {
-      // Usamos 'any' para extraer la nueva estructura { total_contributed, contributions }
       const response = await api.get<any>('/contributions/me');
+      const resData = response.data?.data ?? response.data;
       
-      // Extraemos específicamente el arreglo de contribuciones
-      userContributions.value = response.data.data.contributions || [];
+      let list: any[] = [];
+      if (Array.isArray(resData?.contributions)) {
+        list = resData.contributions;
+      } else if (Array.isArray(resData)) {
+        list = resData;
+      }
+
+      userContributions.value = list.map((item: any) => ({
+        ...item,
+        id: item.contribution_id || item.id,
+        contribution_id: item.contribution_id || item.id,
+        campaign_title: item.campaign_title || item.campaign?.title || '',
+        status: item.status || (item.campaign_status === 'ACTIVE' ? 'HELD' : item.campaign_status) || 'HELD',
+        amount: Number(item.amount) || 0,
+      }));
     } catch (err: any) {
-      error.value = err.response?.data?.error || 'Error al obtener las contribuciones';
+      error.value = err.response?.data?.error || err.response?.data?.message || 'Error al obtener las contribuciones';
     } finally {
       loading.value = false;
     }
