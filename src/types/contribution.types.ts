@@ -1,13 +1,14 @@
 export type ContributionStatus = 'HELD' | 'RELEASED' | 'REFUNDED';
 
 export interface Contribution {
-  id: string;
+  id?: string;
+  contribution_id?: string;
   campaign_id: string;
-  user_id: string;
+  user_id?: string;
   amount: number;
   status: ContributionStatus;
   created_at: string;
-  campaign_title?: string; // Opcional para mostrar en la vista de historial
+  campaign_title?: string;
 }
 
 export interface CreateContributionDTO {
