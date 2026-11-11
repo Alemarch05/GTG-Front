@@ -3,27 +3,31 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { api } from '../services/api';
-import type { User, LoginDTO, RegisterDTO, AuthResponse } from '../types/auth.types';
+import type { User, LoginDTO, RegisterDTO } from '../types/auth.types';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(JSON.parse(localStorage.getItem('user') || 'null'));
-  const token = ref<string | null>(localStorage.getItem('token'));
+  const accessToken = ref<string | null>(localStorage.getItem('accessToken'));
+  const refreshToken = ref<string | null>(localStorage.getItem('refreshToken'));
   const loading = ref<boolean>(false);
   const error = ref<string | null>(null);
 
-  const isAuthenticated = computed(() => !!token.value);
+  const isAuthenticated = computed(() => !!accessToken.value);
 
   async function login(credentials: LoginDTO) {
     loading.value = true;
     error.value = null;
     try {
-      const response = await api.post<AuthResponse>('/auth/login', credentials);
+      const response = await api.post('/auth/login', credentials);
       const authData = response.data.data;
 
-      token.value = authData.token;
+      // Asignamos los nuevos tokens
+      accessToken.value = authData.accessToken;
+      refreshToken.value = authData.refreshToken;
       user.value = authData.user;
 
-      localStorage.setItem('token', authData.token);
+      localStorage.setItem('accessToken', authData.accessToken);
+      localStorage.setItem('refreshToken', authData.refreshToken);
       localStorage.setItem('user', JSON.stringify(authData.user));
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Error al iniciar sesión';
@@ -46,16 +50,27 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout() {
-    token.value = null;
+  async function logout() {
+    if (refreshToken.value) {
+      try {
+        await api.post('/auth/logout', { refreshToken: refreshToken.value });
+      } catch (err) {
+        console.warn('El token ya estaba revocado o expirado en el servidor');
+      }
+    }
+    
+    accessToken.value = null;
+    refreshToken.value = null;
     user.value = null;
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
   }
 
   return {
     user,
-    token,
+    accessToken,
+    refreshToken,
     loading,
     error,
     isAuthenticated,

@@ -5,6 +5,7 @@ import MainLayout from '@/layouts/MainLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import MyContributionsView from '../views/contributions/MyContributionsView.vue';
 import CampaignsListView from '../views/Campaigns/CampaignsListView.vue';
+import { useAuthStore } from '../stores/auth.store'; 
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -28,6 +29,11 @@ const router = createRouter({
     {
       path: '/login',
       redirect: '/auth/login',
+    },
+    
+    {
+      path: '/',
+      redirect: '/main',
     },
     {
       path: '/main',
@@ -62,5 +68,24 @@ const router = createRouter({
     },
   ],
 })
+
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore();
+  const isAuth = authStore.isAuthenticated;
+
+  if (to.path === '/') {
+    return isAuth ? next('/main') : next('/auth/login');
+  }
+
+  if (to.path.startsWith('/main') && !isAuth) {
+    return next('/auth/login');
+  }
+
+  if (to.path.startsWith('/auth') && isAuth) {
+    return next('/main');
+  }
+
+  next();
+});
 
 export default router
